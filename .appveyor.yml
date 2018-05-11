@@ -1,0 +1,38 @@
+version: '{build}'
+
+cache:
+- nim-0.18.0_x64.zip
+- tools_tmp\nim-0.18.0_x64.zip
+- x86_64-7.2.0-release-win32-seh-rt_v5-rev1.7z
+
+matrix:
+  fast_finish: true
+
+environment:
+  global:
+    LMDB_VERSION: "0.9.18"
+  matrix:
+    - MINGW_ARCHIVE: x86_64-7.2.0-release-win32-seh-rt_v5-rev1.7z
+      MINGW_DIR: mingw64
+      MINGW_URL: https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/7.2.0/threads-win32/seh/x86_64-7.2.0-release-win32-seh-rt_v5-rev1.7z/download
+      NIM_ARCHIVE: nim-0.18.0_x64.zip
+      NIM_DIR: nim-0.18.0
+      NIM_URL: https://nim-lang.org/download/nim-0.18.0_x64.zip
+      platform: x64
+
+install:
+  - C:\msys64\usr\bin\bash.exe -lc "pacman --noconfirm -Syuu mingw-w64-x86_64-qt5 mingw-w64-x86_64-lmdb"
+  - MKDIR %CD%\tools_tmp
+  - cd tools_tmp
+  - IF not exist "%NIM_ARCHIVE%" appveyor DownloadFile "%NIM_URL%" -FileName "%NIM_ARCHIVE%"
+  - 7z x -y "%NIM_ARCHIVE%" > nul
+  - cd ..
+  - SET PATH=%CD%\tools_tmp\%NIM_DIR%\bin;C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0;C:\MinGW\bin;%PATH%
+
+build_script:
+  - nim.exe c -p:. tests/functional.nim
+
+test_script:
+  - tests\functional
+
+deploy: off
