@@ -51,6 +51,8 @@ dbenv.close(dbi)
 dbenv.envClose()
 ----
 
+Also see tests/functional.nim for more examples.
+
 ### Contributing
 
 Testing and PRs are welcome.

@@ -1140,6 +1140,7 @@ type
 
 proc envSetAssert*(env: ptr Env; `func`: ptr AssertFunc): cint {.cdecl,
     importc: "mdb_env_set_assert", dynlib: LibName.}
+
 proc txnBegin*(env: ptr Env; parent: PTxn; flags: cuint; txn: ptr PTxn): cint {.cdecl,
     importc: "mdb_txn_begin", dynlib: LibName.}
   ## Create a transaction for use with the environment.
@@ -1358,7 +1359,10 @@ proc stat*(txn: PTxn; dbi: Dbi; stat: ptr Stat): cint {.cdecl, importc: "mdb_sta
   ## <ul>
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
-  ##
+
+proc stat*(txn: PTxn, dbi: Dbi): Stat =
+  ## Retrieve statistics for a database.
+  check txn.stat(dbi, addr(result))
 
 proc dbiFlags*(txn: PTxn; dbi: Dbi; flags: ptr cuint): cint {.cdecl,
     importc: "mdb_dbi_flags", dynlib: LibName.}
@@ -1398,7 +1402,14 @@ proc drop*(txn: PTxn; dbi: Dbi; del: cint): cint {.cdecl, importc: "mdb_drop",
   ## @param[in] del 0 to empty the DB, 1 to delete it from the
   ## environment and close the DB handle.
   ## @return A non-zero error value on failure and 0 on success.
-  ##
+
+proc emptyDb*(txn: PTxn; dbi: Dbi) =
+  ## Empty a database.
+  check drop(txn, dbi, 0)
+
+proc deleteAndCloseDb*(txn: PTxn; dbi: Dbi) =
+  ## Delete+close a database.
+  check drop(txn, dbi, 1)
 
 proc setCompare*(txn: PTxn; dbi: Dbi; cmp: ptr CmpFunc): cint {.cdecl,
     importc: "mdb_set_compare", dynlib: LibName.}
@@ -1482,7 +1493,6 @@ proc setRelctx*(txn: PTxn; dbi: Dbi; ctx: pointer): cint {.cdecl,
   ## <ul>
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
-  ##
 
 proc get*(txn: PTxn; dbi: Dbi; key: ptr Val; data: ptr Val): cint {.cdecl,
     importc: "mdb_get", dynlib: LibName.}
@@ -1511,8 +1521,6 @@ proc get*(txn: PTxn; dbi: Dbi; key: ptr Val; data: ptr Val): cint {.cdecl,
   ## <li>#MDB_NOTFOUND - the key was not in the database.
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
-
-
 
 proc get*(txn: PTxn; dbi: Dbi; key: string): string =
   ## Get items from a database.
@@ -1653,7 +1661,6 @@ proc cursorClose*(cursor: ptr cursor) {.cdecl, importc: "mdb_cursor_close",
   ## The cursor handle will be freed and must not be used again after this call.
   ## Its transaction must still be live if it is a write-transaction.
   ## @param[in] cursor A cursor handle returned by #mdb_cursor_open()
-  ##
 
 proc cursorRenew*(txn: PTxn; cursor: ptr cursor): cint {.cdecl,
     importc: "mdb_cursor_renew", dynlib: LibName.}
@@ -1672,7 +1679,6 @@ proc cursorRenew*(txn: PTxn; cursor: ptr cursor): cint {.cdecl,
   ## <ul>
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
-  ##
 
 proc cursorTxn*(cursor: ptr cursor): PTxn {.cdecl, importc: "mdb_cursor_txn",
     dynlib: LibName.}
@@ -1707,7 +1713,6 @@ proc cursorGet*(cursor: ptr cursor; key: ptr Val; data: ptr Val; op: cursorOp): 
   ## <li>#MDB_NOTFOUND - no matching key found.
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
-  ##
 
 proc cursorPut*(cursor: ptr cursor; key: ptr Val; data: ptr Val; flags: cuint): cint {.cdecl,
     importc: "mdb_cursor_put", dynlib: LibName.}
@@ -1769,7 +1774,6 @@ proc cursorPut*(cursor: ptr cursor; key: ptr Val; data: ptr Val; flags: cuint): 
   ## <li>EACCES - an attempt was made to write in a read-only transaction.
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
-  ##
 
 proc cursorDel*(cursor: ptr cursor; flags: cuint): cint {.cdecl,
     importc: "mdb_cursor_del", dynlib: LibName.}
@@ -1789,7 +1793,6 @@ proc cursorDel*(cursor: ptr cursor; flags: cuint): cint {.cdecl,
   ## <li>EACCES - an attempt was made to write in a read-only transaction.
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
-  ##
 
 proc cursorCount*(cursor: ptr cursor; countp: ptr csize): cint {.cdecl,
     importc: "mdb_cursor_count", dynlib: LibName.}
@@ -1808,7 +1811,6 @@ proc cursorCount*(cursor: ptr cursor; countp: ptr csize): cint {.cdecl,
 proc count*(cursor: ptr cursor): int =
   ## Return count of duplicates for current key.
   check cursorCount(cursor, addr(result))
-
 
 proc cmp*(txn: PTxn; dbi: Dbi; a: ptr Val; b: ptr Val): cint {.cdecl, importc: "mdb_cmp",
     dynlib: LibName.}

@@ -157,11 +157,30 @@ suite "functest":
     dbenv.close(dbi)
     txn.abort()
 
-  #test "transaction, cursor":
-  #  let txn = dbenv.newTxn()
-  #  let cur = txn.cursorOpen()
-  #  cur.cursorClose()
-  #  txn.abort()
+  test "stat":
+    let txn = dbenv.newTxn()
+    let dbi = txn.dbiOpen(nil, 0)
+    let stat = txn.stat(dbi)
+    check stat.msEntries == 2
+    dbenv.close(dbi)
+    txn.abort()
+
+  test "emptyDb deleteAndCloseDb":
+    let txn = dbenv.newTxn()
+    let dbi = txn.dbiOpen(nil, 0)
+    txn.emptyDb(dbi)
+    txn.deleteAndCloseDb(dbi)
+    dbenv.close(dbi)
+    txn.abort()
+
+  test "transaction, cursor":
+    let txn = dbenv.newTxn()
+    let dbi = txn.dbiOpen(nil, 0)
+    let cur = txn.cursorOpen(dbi)
+    #echo cur.count()
+    cur.cursorClose()
+    dbenv.close(dbi)
+    txn.abort()
 
   dbenv.envClose()
 
