@@ -265,7 +265,7 @@ type
 
 type
   Txn* = object
-  PTxn = ptr Txn
+  LMDBTxn* = ptr Txn
 
   ## A handle for an individual database in the DB environment.
 
@@ -1141,7 +1141,7 @@ type
 proc envSetAssert*(env: ptr Env; `func`: ptr AssertFunc): cint {.cdecl,
     importc: "mdb_env_set_assert", dynlib: LibName.}
 
-proc txnBegin*(env: ptr Env; parent: PTxn; flags: cuint; txn: ptr PTxn): cint {.cdecl,
+proc txnBegin*(env: ptr Env; parent: LMDBTxn; flags: cuint; txn: ptr LMDBTxn): cint {.cdecl,
     importc: "mdb_txn_begin", dynlib: LibName.}
   ## Create a transaction for use with the environment.
   ##
@@ -1178,13 +1178,13 @@ proc txnBegin*(env: ptr Env; parent: PTxn; flags: cuint; txn: ptr PTxn): cint {.
   ## </ul>
   ##
 
-proc txnEnv*(txn: PTxn): ptr Env {.cdecl, importc: "mdb_txn_env", dynlib: LibName.}
+proc txnEnv*(txn: LMDBTxn): ptr Env {.cdecl, importc: "mdb_txn_env", dynlib: LibName.}
   ## Returns the transaction's #MDB_env
   ##
   ## @param[in] txn A transaction handle returned by #mdb_txn_begin()
   ##
 
-proc txnId*(txn: PTxn): csize {.cdecl, importc: "mdb_txn_id", dynlib: LibName.}
+proc txnId*(txn: LMDBTxn): csize {.cdecl, importc: "mdb_txn_id", dynlib: LibName.}
   ## Return the transaction's ID.
   ##
   ## This returns the identifier associated with this transaction. For a
@@ -1195,7 +1195,7 @@ proc txnId*(txn: PTxn): csize {.cdecl, importc: "mdb_txn_id", dynlib: LibName.}
   ## @return A transaction ID, valid if input is an active transaction.
   ##
 
-proc txnCommit*(txn: PTxn): cint {.cdecl, importc: "mdb_txn_commit", dynlib: LibName.}
+proc txnCommit*(txn: LMDBTxn): cint {.cdecl, importc: "mdb_txn_commit", dynlib: LibName.}
   ## Commit all the operations of a transaction into the database.
   ##
   ## The transaction handle is freed. It and its cursors must not be used
@@ -1212,11 +1212,11 @@ proc txnCommit*(txn: PTxn): cint {.cdecl, importc: "mdb_txn_commit", dynlib: Lib
   ## <li>ENOMEM - out of memory.
   ## </ul>
 
-proc commit*(txn: PTxn) =
+proc commit*(txn: LMDBTxn) =
   ## Commit all the operations of a transaction into the database.
   check txn.txnCommit()
 
-proc abort*(txn: PTxn) {.cdecl, importc: "mdb_txn_abort", dynlib: LibName.}
+proc abort*(txn: LMDBTxn) {.cdecl, importc: "mdb_txn_abort", dynlib: LibName.}
   ## Abandon all the operations of the transaction instead of saving them.
   ##
   ## The transaction handle is freed. It and its cursors must not be used
@@ -1225,7 +1225,7 @@ proc abort*(txn: PTxn) {.cdecl, importc: "mdb_txn_abort", dynlib: LibName.}
   ## Only write-transactions free cursors.
   ## @param[in] txn A transaction handle returned by #mdb_txn_begin()
 
-proc reset*(txn: PTxn) {.cdecl, importc: "mdb_txn_reset", dynlib: LibName.}
+proc reset*(txn: LMDBTxn) {.cdecl, importc: "mdb_txn_reset", dynlib: LibName.}
   ## Reset a read-only transaction.
   ##
   ## Abort the transaction like #mdb_txn_abort(), but keep the transaction
@@ -1243,7 +1243,7 @@ proc reset*(txn: PTxn) {.cdecl, importc: "mdb_txn_reset", dynlib: LibName.}
   ## the database size may grow much more rapidly than otherwise.
   ## @param[in] txn A transaction handle returned by #mdb_txn_begin()
 
-proc txnRenew*(txn: PTxn): cint {.cdecl, importc: "mdb_txn_renew", dynlib: LibName.}
+proc txnRenew*(txn: LMDBTxn): cint {.cdecl, importc: "mdb_txn_renew", dynlib: LibName.}
   ## Renew a read-only transaction.
   ##
   ## This acquires a new reader lock for a transaction handle that had been
@@ -1258,7 +1258,7 @@ proc txnRenew*(txn: PTxn): cint {.cdecl, importc: "mdb_txn_renew", dynlib: LibNa
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc renew*(txn: PTxn) =
+proc renew*(txn: LMDBTxn) =
   ## Renew a read-only transaction.
   check txn.txnRenew()
 
@@ -1269,7 +1269,7 @@ template open*(txn, name, flags, dbi: untyped): untyped =
 template close*(env, dbi: untyped): untyped =
   dbiClose(env, dbi)
 
-proc dbiOpen*(txn: PTxn; name: cstring; flags: cuint; dbi: ptr Dbi): cint {.cdecl,
+proc dbiOpen*(txn: LMDBTxn; name: cstring; flags: cuint; dbi: ptr Dbi): cint {.cdecl,
     importc: "mdb_dbi_open", dynlib: LibName.}
   ## Open a database in the environment.
   ##
@@ -1339,14 +1339,14 @@ proc dbiOpen*(txn: PTxn; name: cstring; flags: cuint; dbi: ptr Dbi): cint {.cdec
   ## <li>#MDB_DBS_FULL - too many databases have been opened. See #mdb_env_set_maxdbs().
   ## </ul>
 
-proc dbiOpen*(txn: PTxn; name: string; flags: cuint): Dbi =
+proc dbiOpen*(txn: LMDBTxn; name: string; flags: cuint): Dbi =
   ## Open a database in the environment.
   if name == nil:
     check dbiOpen(txn, nil, flags, addr(result))
   else:
     check dbiOpen(txn, name.cstring, flags, addr(result))
 
-proc stat*(txn: PTxn; dbi: Dbi; stat: ptr Stat): cint {.cdecl, importc: "mdb_stat",
+proc stat*(txn: LMDBTxn; dbi: Dbi; stat: ptr Stat): cint {.cdecl, importc: "mdb_stat",
     dynlib: LibName.}
   ## Retrieve statistics for a database.
   ##
@@ -1360,11 +1360,11 @@ proc stat*(txn: PTxn; dbi: Dbi; stat: ptr Stat): cint {.cdecl, importc: "mdb_sta
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc stat*(txn: PTxn, dbi: Dbi): Stat =
+proc stat*(txn: LMDBTxn, dbi: Dbi): Stat =
   ## Retrieve statistics for a database.
   check txn.stat(dbi, addr(result))
 
-proc dbiFlags*(txn: PTxn; dbi: Dbi; flags: ptr cuint): cint {.cdecl,
+proc dbiFlags*(txn: LMDBTxn; dbi: Dbi; flags: ptr cuint): cint {.cdecl,
     importc: "mdb_dbi_flags", dynlib: LibName.}
   ## Retrieve the DB flags for a database handle.
   ##
@@ -1392,7 +1392,7 @@ proc dbiClose*(env: ptr Env; dbi: Dbi) {.cdecl, importc: "mdb_dbi_close", dynlib
   ## @param[in] dbi A database handle returned by #mdb_dbi_open()
   ##
 
-proc drop*(txn: PTxn; dbi: Dbi; del: cint): cint {.cdecl, importc: "mdb_drop",
+proc drop*(txn: LMDBTxn; dbi: Dbi; del: cint): cint {.cdecl, importc: "mdb_drop",
     dynlib: LibName.}
   ## Empty or delete+close a database.
   ##
@@ -1403,15 +1403,15 @@ proc drop*(txn: PTxn; dbi: Dbi; del: cint): cint {.cdecl, importc: "mdb_drop",
   ## environment and close the DB handle.
   ## @return A non-zero error value on failure and 0 on success.
 
-proc emptyDb*(txn: PTxn; dbi: Dbi) =
+proc emptyDb*(txn: LMDBTxn; dbi: Dbi) =
   ## Empty a database.
   check drop(txn, dbi, 0)
 
-proc deleteAndCloseDb*(txn: PTxn; dbi: Dbi) =
+proc deleteAndCloseDb*(txn: LMDBTxn; dbi: Dbi) =
   ## Delete+close a database.
   check drop(txn, dbi, 1)
 
-proc setCompare*(txn: PTxn; dbi: Dbi; cmp: ptr CmpFunc): cint {.cdecl,
+proc setCompare*(txn: LMDBTxn; dbi: Dbi; cmp: ptr CmpFunc): cint {.cdecl,
     importc: "mdb_set_compare", dynlib: LibName.}
   ## Set a custom key comparison function for a database.
   ##
@@ -1433,7 +1433,7 @@ proc setCompare*(txn: PTxn; dbi: Dbi; cmp: ptr CmpFunc): cint {.cdecl,
   ## </ul>
   ##
 
-proc setDupsort*(txn: PTxn; dbi: Dbi; cmp: ptr CmpFunc): cint {.cdecl,
+proc setDupsort*(txn: LMDBTxn; dbi: Dbi; cmp: ptr CmpFunc): cint {.cdecl,
     importc: "mdb_set_dupsort", dynlib: LibName.}
   ## Set a custom data comparison function for a #MDB_DUPSORT database.
   ##
@@ -1457,7 +1457,7 @@ proc setDupsort*(txn: PTxn; dbi: Dbi; cmp: ptr CmpFunc): cint {.cdecl,
   ## </ul>
   ##
 
-proc setRelfunc*(txn: PTxn; dbi: Dbi; rel: ptr RelFunc): cint {.cdecl,
+proc setRelfunc*(txn: LMDBTxn; dbi: Dbi; rel: ptr RelFunc): cint {.cdecl,
     importc: "mdb_set_relfunc", dynlib: LibName.}
   ## Set a relocation function for a #MDB_FIXEDMAP database.
   ##
@@ -1478,7 +1478,7 @@ proc setRelfunc*(txn: PTxn; dbi: Dbi; rel: ptr RelFunc): cint {.cdecl,
   ## </ul>
   ##
 
-proc setRelctx*(txn: PTxn; dbi: Dbi; ctx: pointer): cint {.cdecl,
+proc setRelctx*(txn: LMDBTxn; dbi: Dbi; ctx: pointer): cint {.cdecl,
     importc: "mdb_set_relctx", dynlib: LibName.}
   ## Set a context pointer for a #MDB_FIXEDMAP database's relocation function.
   ##
@@ -1494,7 +1494,7 @@ proc setRelctx*(txn: PTxn; dbi: Dbi; ctx: pointer): cint {.cdecl,
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc get*(txn: PTxn; dbi: Dbi; key: ptr Val; data: ptr Val): cint {.cdecl,
+proc get*(txn: LMDBTxn; dbi: Dbi; key: ptr Val; data: ptr Val): cint {.cdecl,
     importc: "mdb_get", dynlib: LibName.}
   ## Get items from a database.
   ##
@@ -1522,7 +1522,7 @@ proc get*(txn: PTxn; dbi: Dbi; key: ptr Val; data: ptr Val): cint {.cdecl,
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc get*(txn: PTxn; dbi: Dbi; key: string): string =
+proc get*(txn: LMDBTxn; dbi: Dbi; key: string): string =
   ## Get items from a database.
   var key = key
   var k = Val(mvSize: key.len, mvData: key.cstring)
@@ -1535,7 +1535,7 @@ proc get*(txn: PTxn; dbi: Dbi; key: string): string =
   result.setLen(data.mvSize)
 
 
-proc put*(txn: PTxn; dbi: Dbi; key: ptr Val; data: ptr Val; flags: cuint): cint {.cdecl,
+proc put*(txn: LMDBTxn; dbi: Dbi; key: ptr Val; data: ptr Val; flags: cuint): cint {.cdecl,
     importc: "mdb_put", dynlib: LibName.}
   ## Store items into a database.
   ##
@@ -1584,7 +1584,7 @@ proc put*(txn: PTxn; dbi: Dbi; key: ptr Val; data: ptr Val; flags: cuint): cint 
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc put*(txn: PTxn; dbi: Dbi; key, data: string, flags=0) =
+proc put*(txn: LMDBTxn; dbi: Dbi; key, data: string, flags=0) =
   ## Store item into a database.
   var key = key
   var data = data
@@ -1593,7 +1593,7 @@ proc put*(txn: PTxn; dbi: Dbi; key, data: string, flags=0) =
 
   check txn.put(dbi, addr(k), addr(d), flags.cuint)
 
-proc del*(txn: PTxn; dbi: Dbi; key: ptr Val; data: ptr Val): cint {.cdecl,
+proc del*(txn: LMDBTxn; dbi: Dbi; key: ptr Val; data: ptr Val): cint {.cdecl,
     importc: "mdb_del", dynlib: LibName.}
   ## Delete items from a database.
   ##
@@ -1617,7 +1617,7 @@ proc del*(txn: PTxn; dbi: Dbi; key: ptr Val; data: ptr Val): cint {.cdecl,
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc del*(txn: PTxn; dbi: Dbi; key, data: string, flags=0) =
+proc del*(txn: LMDBTxn; dbi: Dbi; key, data: string, flags=0) =
   ## Delete an item from a database.
   var key = key
   var data = data
@@ -1626,7 +1626,7 @@ proc del*(txn: PTxn; dbi: Dbi; key, data: string, flags=0) =
 
   check txn.del(dbi, addr(k), addr(d))
 
-proc cursorOpen*(txn: PTxn; dbi: Dbi; cursor: ptr ptr cursor): cint {.cdecl,
+proc cursorOpen*(txn: LMDBTxn; dbi: Dbi; cursor: ptr ptr cursor): cint {.cdecl,
     importc: "mdb_cursor_open", dynlib: LibName.}
   ## Create a cursor handle.
   ##
@@ -1650,7 +1650,7 @@ proc cursorOpen*(txn: PTxn; dbi: Dbi; cursor: ptr ptr cursor): cint {.cdecl,
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc cursorOpen*(txn: PTxn; dbi: Dbi): ptr cursor =
+proc cursorOpen*(txn: LMDBTxn; dbi: Dbi): ptr cursor =
   ## Create new cursor
   check txn.cursorOpen(dbi, addr(result))
 
@@ -1662,7 +1662,7 @@ proc cursorClose*(cursor: ptr cursor) {.cdecl, importc: "mdb_cursor_close",
   ## Its transaction must still be live if it is a write-transaction.
   ## @param[in] cursor A cursor handle returned by #mdb_cursor_open()
 
-proc cursorRenew*(txn: PTxn; cursor: ptr cursor): cint {.cdecl,
+proc cursorRenew*(txn: LMDBTxn; cursor: ptr cursor): cint {.cdecl,
     importc: "mdb_cursor_renew", dynlib: LibName.}
   ## Renew a cursor handle.
   ##
@@ -1680,7 +1680,7 @@ proc cursorRenew*(txn: PTxn; cursor: ptr cursor): cint {.cdecl,
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc cursorTxn*(cursor: ptr cursor): PTxn {.cdecl, importc: "mdb_cursor_txn",
+proc cursorTxn*(cursor: ptr cursor): LMDBTxn {.cdecl, importc: "mdb_cursor_txn",
     dynlib: LibName.}
   ## Return the cursor's transaction handle.
   ##
@@ -1812,7 +1812,7 @@ proc count*(cursor: ptr cursor): int =
   ## Return count of duplicates for current key.
   check cursorCount(cursor, addr(result))
 
-proc cmp*(txn: PTxn; dbi: Dbi; a: ptr Val; b: ptr Val): cint {.cdecl, importc: "mdb_cmp",
+proc cmp*(txn: LMDBTxn; dbi: Dbi; a: ptr Val; b: ptr Val): cint {.cdecl, importc: "mdb_cmp",
     dynlib: LibName.}
   ## Compare two data items according to a particular database.
   ##
@@ -1825,7 +1825,7 @@ proc cmp*(txn: PTxn; dbi: Dbi; a: ptr Val; b: ptr Val): cint {.cdecl, importc: "
   ## @return < 0 if a < b, 0 if a == b, > 0 if a > b
   ##
 
-proc dcmp*(txn: PTxn; dbi: Dbi; a: ptr Val; b: ptr Val): cint {.cdecl, importc: "mdb_dcmp",
+proc dcmp*(txn: LMDBTxn; dbi: Dbi; a: ptr Val; b: ptr Val): cint {.cdecl, importc: "mdb_dcmp",
     dynlib: LibName.}
   ## Compare two data items according to a particular database.
   ##
@@ -1868,18 +1868,18 @@ proc readerCheck*(env: ptr Env; dead: ptr cint): cint {.cdecl,
 
 
 type
-  PEnv = ptr Env
+  LMDBEnv* = ptr Env
 
-proc newLMDBEnv*(path: string): PEnv =
+proc newLMDBEnv*(path: string): LMDBEnv =
   ## Create LMDB env. Open a database in directory `path`
   var env: ptr Env
   check envCreate(addr(env))
   check envOpen(env, path.cstring, 0, 0o0664)
   return env
 
-proc newTxn*(env: PEnv): PTxn =
+proc newTxn*(env: LMDBEnv): LMDBTxn =
   ## Create LMDB transaction
-  var ptxn: PTxn
-  var parent_txn: PTxn
+  var ptxn: LMDBTxn
+  var parent_txn: LMDBTxn
   check txnBegin(env, nil, 0, addr(ptxn))
   return ptxn
