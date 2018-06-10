@@ -176,6 +176,7 @@ else:
 
 type
   cursor* {.incompleteStruct.} = object
+  LMDBCursor* = ptr cursor
 
 when defined(windows):
   type
@@ -283,7 +284,7 @@ type
   ## free them, they commonly point into the database itself.
   ##
   ## Key sizes must be between 1 and #mdb_env_get_maxkeysize() inclusive.
-  ## The same applies to data sizes in databases with the #MDB_DUPSORT flag.
+  ## The same applies to data sizes in databases with the #DUPSORT flag.
   ## Other data items can in theory be from 0 to 0xffffffff bytes long.
   ##
 
@@ -392,17 +393,17 @@ const
 const
   INTEGERKEY* = 0x00000008
 
-  ## with #MDB_DUPSORT, sorted dup items have fixed size
+  ## with #DUPSORT, sorted dup items have fixed size
 
 const
   DUPFIXED* = 0x00000010
 
-  ## with #MDB_DUPSORT, dups are #MDB_INTEGERKEY-style integers
+  ## with #DUPSORT, dups are #MDB_INTEGERKEY-style integers
 
 const
   INTEGERDUP* = 0x00000020
 
-  ## with #MDB_DUPSORT, use reverse string dups
+  ## with #DUPSORT, use reverse string dups
 
 const
   REVERSEDUP* = 0x00000040
@@ -420,7 +421,7 @@ const
 const
   NOOVERWRITE* = 0x00000010
 
-  ## Only for #MDB_DUPSORT<br>
+  ## Only for #DUPSORT<br>
   ## For put: don't write if the key and data pair already exist.<br>
   ## For mdb_cursor_del: remove all duplicate data items.
   ##
@@ -474,26 +475,26 @@ type
   cursorOp* {.size: sizeof(cint).} = enum
     FIRST,                    ## Position at first key/data item
     FIRST_DUP,                ## Position at first data item of current key.
-              ## Only for #MDB_DUPSORT
-    GET_BOTH,                 ## Position at key/data pair. Only for #MDB_DUPSORT
-    GET_BOTH_RANGE,           ## position at key, nearest data. Only for #MDB_DUPSORT
+              ## Only for #DUPSORT
+    GET_BOTH,                 ## Position at key/data pair. Only for #DUPSORT
+    GET_BOTH_RANGE,           ## position at key, nearest data. Only for #DUPSORT
     GET_CURRENT,              ## Return key/data at current cursor position
     GET_MULTIPLE, ## Return key and up to a page of duplicate data items
                  ## from current cursor position. Move cursor to prepare
                  ## for #MDB_NEXT_MULTIPLE. Only for #MDB_DUPFIXED
     LAST,                     ## Position at last key/data item
     LAST_DUP,                 ## Position at last data item of current key.
-             ## Only for #MDB_DUPSORT
+             ## Only for #DUPSORT
     NEXT,                     ## Position at next data item
     NEXT_DUP,                 ## Position at next data item of current key.
-             ## Only for #MDB_DUPSORT
+             ## Only for #DUPSORT
     NEXT_MULTIPLE, ## Return key and up to a page of duplicate data items
                   ## from next cursor position. Move cursor to prepare
                   ## for #MDB_NEXT_MULTIPLE. Only for #MDB_DUPFIXED
     NEXT_NODUP,               ## Position at first data item of next key
     PREV,                     ## Position at previous data item
     PREV_DUP,                 ## Position at previous data item of current key.
-             ## Only for #MDB_DUPSORT
+             ## Only for #DUPSORT
     PREV_NODUP,               ## Position at last data item of previous key
     SET,                      ## Position at specified key
     SET_KEY,                  ## Position at specified key, return key + data
@@ -589,8 +590,8 @@ const
 
   ## Operation and DB incompatible, or DB type changed. This can mean:
   ## <ul>
-  ## <li>The operation expects an #MDB_DUPSORT / #MDB_DUPFIXED database.
-  ## <li>Opening a named DB when the unnamed DB has #MDB_DUPSORT / #MDB_INTEGERKEY.
+  ## <li>The operation expects an #DUPSORT / #MDB_DUPFIXED database.
+  ## <li>Opening a named DB when the unnamed DB has #DUPSORT / #MDB_INTEGERKEY.
   ## <li>Accessing a data record as a database, or vice versa.
   ## <li>The database was dropped and recreated with different flags.
   ## </ul>
@@ -1093,9 +1094,17 @@ proc envSetMaxdbs*(env: ptr Env; dbs: Dbi): cint {.cdecl, importc: "mdb_env_set_
   ## </ul>
   ##
 
+proc setMaxDBs*(env: ptr Env, dbs: Dbi) =
+  ## Set the maximum number of named databases for the environment.
+  ##
+  ## This function is only needed if multiple databases will be used in the
+  ## environment. Simpler applications that use the environment as a single
+  ## unnamed database can ignore this option.
+  check envSetMaxdbs(env, dbs)
+
 proc envGetMaxkeysize*(env: ptr Env): cint {.cdecl, importc: "mdb_env_get_maxkeysize",
                                         dynlib: LibName.}
-  ## Get the maximum size of keys and #MDB_DUPSORT data we can write.
+  ## Get the maximum size of keys and #DUPSORT data we can write.
   ##
   ## Depends on the compile-time constant #MDB_MAXKEYSIZE. Default 511.
   ## See @ref MDB_val.
@@ -1305,7 +1314,7 @@ proc dbiOpen*(txn: LMDBTxn; name: cstring; flags: cuint; dbi: ptr Dbi): cint {.c
   ## Keys are strings to be compared in reverse order, from the end
   ## of the strings to the beginning. By default, Keys are treated as strings and
   ## compared from beginning to end.
-  ## <li>#MDB_DUPSORT
+  ## <li>#DUPSORT
   ## Duplicate keys may be used in the database. (Or, from another perspective,
   ## keys may have multiple data items, stored in sorted order.) By default
   ## keys must be unique and may have only a single data item.
@@ -1314,7 +1323,7 @@ proc dbiOpen*(txn: LMDBTxn; name: cstring; flags: cuint; dbi: ptr Dbi): cint {.c
   ## or size_t, and will be sorted as such.
   ## The keys must all be of the same size.
   ## <li>#MDB_DUPFIXED
-  ## This flag may only be used in combination with #MDB_DUPSORT. This option
+  ## This flag may only be used in combination with #DUPSORT. This option
   ## tells the library that the data items for this database are all the same
   ## size, which allows further optimizations in storage and retrieval. When
   ## all data items are the same size, the #MDB_GET_MULTIPLE, #MDB_NEXT_MULTIPLE
@@ -1373,6 +1382,12 @@ proc dbiFlags*(txn: LMDBTxn; dbi: Dbi; flags: ptr cuint): cint {.cdecl,
   ## @param[out] flags Address where the flags will be returned.
   ## @return A non-zero error value on failure and 0 on success.
   ##
+
+proc getFlags*(txn: LMDBTxn, dbi: Dbi): int =
+  ## Retrieve the DB flags for a database handle.
+  var r: cuint
+  check dbiFlags(txn, dbi, addr r)
+  int(r)
 
 proc dbiClose*(env: ptr Env; dbi: Dbi) {.cdecl, importc: "mdb_dbi_close", dynlib: LibName.}
   ## Close a database handle. Normally unnecessary. Use with care:
@@ -1435,11 +1450,11 @@ proc setCompare*(txn: LMDBTxn; dbi: Dbi; cmp: ptr CmpFunc): cint {.cdecl,
 
 proc setDupsort*(txn: LMDBTxn; dbi: Dbi; cmp: ptr CmpFunc): cint {.cdecl,
     importc: "mdb_set_dupsort", dynlib: LibName.}
-  ## Set a custom data comparison function for a #MDB_DUPSORT database.
+  ## Set a custom data comparison function for a #DUPSORT database.
   ##
   ## This comparison function is called whenever it is necessary to compare a data
   ## item specified by the application with a data item currently stored in the database.
-  ## This function only takes effect if the database was opened with the #MDB_DUPSORT
+  ## This function only takes effect if the database was opened with the #DUPSORT
   ## flag.
   ## If no comparison function is specified, and no special key flags were specified
   ## with #mdb_dbi_open(), the data items are compared lexically, with shorter items collating
@@ -1501,7 +1516,7 @@ proc get*(txn: LMDBTxn; dbi: Dbi; key: ptr Val; data: ptr Val): cint {.cdecl,
   ## This function retrieves key/data pairs from the database. The address
   ## and length of the data associated with the specified \b key are returned
   ## in the structure to which \b data refers.
-  ## If the database supports duplicate keys (#MDB_DUPSORT) then the
+  ## If the database supports duplicate keys (#DUPSORT) then the
   ## first data item for the key will be returned. Retrieval of other
   ## items requires the use of #mdb_cursor_get().
   ##
@@ -1534,7 +1549,6 @@ proc get*(txn: LMDBTxn; dbi: Dbi; key: string): string =
   copyMem(cast[pointer](result.cstring), cast[pointer](data.mvData), data.mvSize)
   result.setLen(data.mvSize)
 
-
 proc put*(txn: LMDBTxn; dbi: Dbi; key: ptr Val; data: ptr Val; flags: cuint): cint {.cdecl,
     importc: "mdb_put", dynlib: LibName.}
   ## Store items into a database.
@@ -1542,7 +1556,7 @@ proc put*(txn: LMDBTxn; dbi: Dbi; key: ptr Val; data: ptr Val; flags: cuint): ci
   ## This function stores key/data pairs in the database. The default behavior
   ## is to enter the new key/data pair, replacing any previously existing key
   ## if duplicates are disallowed, or adding a duplicate data item if
-  ## duplicates are allowed (#MDB_DUPSORT).
+  ## duplicates are allowed (#DUPSORT).
   ## @param[in] txn A transaction handle returned by #mdb_txn_begin()
   ## @param[in] dbi A database handle returned by #mdb_dbi_open()
   ## @param[in] key The key to store in the database
@@ -1553,13 +1567,13 @@ proc put*(txn: LMDBTxn; dbi: Dbi; key: ptr Val; data: ptr Val; flags: cuint): ci
   ## <ul>
   ## <li>#MDB_NODUPDATA - enter the new key/data pair only if it does not
   ## already appear in the database. This flag may only be specified
-  ## if the database was opened with #MDB_DUPSORT. The function will
+  ## if the database was opened with #DUPSORT. The function will
   ## return #MDB_KEYEXIST if the key/data pair already appears in the
   ## database.
   ## <li>#MDB_NOOVERWRITE - enter the new key/data pair only if the key
   ## does not already appear in the database. The function will return
   ## #MDB_KEYEXIST if the key already appears in the database, even if
-  ## the database supports duplicates (#MDB_DUPSORT). The \b data
+  ## the database supports duplicates (#DUPSORT). The \b data
   ## parameter will be set to point to the existing item.
   ## <li>#MDB_RESERVE - reserve space for data of the given size, but
   ## don't copy the given data. Instead, return a pointer to the
@@ -1568,7 +1582,7 @@ proc put*(txn: LMDBTxn; dbi: Dbi; key: ptr Val; data: ptr Val; flags: cuint): ci
   ## an extra memcpy if the data is being generated later.
   ## LMDB does nothing else with this memory, the caller is expected
   ## to modify all of the space requested. This flag must not be
-  ## specified if the database was opened with #MDB_DUPSORT.
+  ## specified if the database was opened with #DUPSORT.
   ## <li>#MDB_APPEND - append the given key/data pair to the end of the
   ## database. This option allows fast bulk loading when keys are
   ## already known to be in the correct order. Loading unsorted keys
@@ -1599,7 +1613,7 @@ proc del*(txn: LMDBTxn; dbi: Dbi; key: ptr Val; data: ptr Val): cint {.cdecl,
   ##
   ## This function removes key/data pairs from the database.
   ## If the database does not support sorted duplicate data items
-  ## (#MDB_DUPSORT) the data parameter is ignored.
+  ## (#DUPSORT) the data parameter is ignored.
   ## If the database supports sorted duplicates and the data parameter
   ## is NULL, all of the duplicate data items for the key will be
   ## deleted. Otherwise, if the data parameter is non-NULL
@@ -1626,7 +1640,7 @@ proc del*(txn: LMDBTxn; dbi: Dbi; key, data: string, flags=0) =
 
   check txn.del(dbi, addr(k), addr(d))
 
-proc cursorOpen*(txn: LMDBTxn; dbi: Dbi; cursor: ptr ptr cursor): cint {.cdecl,
+proc cursorOpen*(txn: LMDBTxn; dbi: Dbi; cursor: ptr LMDBCursor): cint {.cdecl,
     importc: "mdb_cursor_open", dynlib: LibName.}
   ## Create a cursor handle.
   ##
@@ -1650,19 +1664,29 @@ proc cursorOpen*(txn: LMDBTxn; dbi: Dbi; cursor: ptr ptr cursor): cint {.cdecl,
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc cursorOpen*(txn: LMDBTxn; dbi: Dbi): ptr cursor =
+proc cursorOpen*(txn: LMDBTxn; dbi: Dbi): LMDBCursor =
   ## Create new cursor
   check txn.cursorOpen(dbi, addr(result))
 
-proc cursorClose*(cursor: ptr cursor) {.cdecl, importc: "mdb_cursor_close",
+proc createCursor*(txn: LMDBTxn; dbi: Dbi): LMDBCursor =
+  ## Create new cursor
+  check txn.cursorOpen(dbi, addr(result))
+
+proc cursorClose*(cursor: LMDBCursor) {.cdecl, importc: "mdb_cursor_close",
                                     dynlib: LibName.}
   ## Close a cursor handle.
   ##
   ## The cursor handle will be freed and must not be used again after this call.
   ## Its transaction must still be live if it is a write-transaction.
-  ## @param[in] cursor A cursor handle returned by #mdb_cursor_open()
 
-proc cursorRenew*(txn: LMDBTxn; cursor: ptr cursor): cint {.cdecl,
+proc close*(cursor: LMDBCursor) {.cdecl, importc: "mdb_cursor_close",
+                                    dynlib: LibName.}
+  ## Close a cursor handle.
+  ##
+  ## The cursor handle will be freed and must not be used again after this call.
+  ## Its transaction must still be live if it is a write-transaction.
+
+proc cursorRenew*(txn: LMDBTxn; cursor: LMDBCursor): cint {.cdecl,
     importc: "mdb_cursor_renew", dynlib: LibName.}
   ## Renew a cursor handle.
   ##
@@ -1680,20 +1704,20 @@ proc cursorRenew*(txn: LMDBTxn; cursor: ptr cursor): cint {.cdecl,
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc cursorTxn*(cursor: ptr cursor): LMDBTxn {.cdecl, importc: "mdb_cursor_txn",
+proc cursorTxn*(cursor: LMDBCursor): LMDBTxn {.cdecl, importc: "mdb_cursor_txn",
     dynlib: LibName.}
   ## Return the cursor's transaction handle.
   ##
   ## @param[in] cursor A cursor handle returned by #mdb_cursor_open()
   ##
 
-proc cursorDbi*(cursor: ptr cursor): Dbi {.cdecl, importc: "mdb_cursor_dbi",
+proc cursorDbi*(cursor: LMDBCursor): Dbi {.cdecl, importc: "mdb_cursor_dbi",
                                       dynlib: LibName.}
   ## Return the cursor's database handle.
   ##
   ## @param[in] cursor A cursor handle returned by #mdb_cursor_open()
 
-proc cursorGet*(cursor: ptr cursor; key: ptr Val; data: ptr Val; op: cursorOp): cint {.cdecl,
+proc cursorGet*(cursor: LMDBCursor; key: ptr Val; data: ptr Val; op: cursorOp): cint {.cdecl,
     importc: "mdb_cursor_get", dynlib: LibName.}
   ## Retrieve by cursor.
   ##
@@ -1714,7 +1738,32 @@ proc cursorGet*(cursor: ptr cursor; key: ptr Val; data: ptr Val; op: cursorOp): 
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc cursorPut*(cursor: ptr cursor; key: ptr Val; data: ptr Val; flags: cuint): cint {.cdecl,
+proc get*(cursor: LMDBCursor, key: string, op: cursorOp = FIRST): string =
+  ## Retrieve key/data pairs from the database using a cursor.
+  var key = key
+  var k = Val(mvSize: key.len, mvData: key.cstring)
+  var data: Val
+
+  check cursorGet(cursor, addr(k), addr(data), op)
+
+  result = newStringOfCap(data.mvSize)
+  copyMem(cast[pointer](result.cstring), cast[pointer](data.mvData), data.mvSize)
+  result.setLen(data.mvSize)
+
+iterator get*(cursor: LMDBCursor, key: string): string =
+  ## Retrieve values for a given key using a cursor.
+  ## Only for dbi opened with DUPSORT.
+  while true:
+    try:
+      yield cursor.get(key, op=NEXT)
+    except:
+      let m = getCurrentExceptionMsg()
+      if m.len > 12 and m[0..11] == "MDB_NOTFOUND":
+        break
+      else:
+        raise
+
+proc cursorPut*(cursor: LMDBCursor; key: ptr Val; data: ptr Val; flags: cuint): cint {.cdecl,
     importc: "mdb_cursor_put", dynlib: LibName.}
   ## Store by cursor.
   ##
@@ -1730,25 +1779,25 @@ proc cursorPut*(cursor: ptr cursor; key: ptr Val; data: ptr Val; flags: cuint): 
   ## <ul>
   ## <li>#MDB_CURRENT - replace the item at the current cursor position.
   ## The \b key parameter must still be provided, and must match it.
-  ## If using sorted duplicates (#MDB_DUPSORT) the data item must still
+  ## If using sorted duplicates (#DUPSORT) the data item must still
   ## sort into the same place. This is intended to be used when the
   ## new data is the same size as the old. Otherwise it will simply
   ## perform a delete of the old record followed by an insert.
   ## <li>#MDB_NODUPDATA - enter the new key/data pair only if it does not
   ## already appear in the database. This flag may only be specified
-  ## if the database was opened with #MDB_DUPSORT. The function will
+  ## if the database was opened with #DUPSORT. The function will
   ## return #MDB_KEYEXIST if the key/data pair already appears in the
   ## database.
   ## <li>#MDB_NOOVERWRITE - enter the new key/data pair only if the key
   ## does not already appear in the database. The function will return
   ## #MDB_KEYEXIST if the key already appears in the database, even if
-  ## the database supports duplicates (#MDB_DUPSORT).
+  ## the database supports duplicates (#DUPSORT).
   ## <li>#MDB_RESERVE - reserve space for data of the given size, but
   ## don't copy the given data. Instead, return a pointer to the
   ## reserved space, which the caller can fill in later - before
   ## the next update operation or the transaction ends. This saves
   ## an extra memcpy if the data is being generated later. This flag
-  ## must not be specified if the database was opened with #MDB_DUPSORT.
+  ## must not be specified if the database was opened with #DUPSORT.
   ## <li>#MDB_APPEND - append the given key/data pair to the end of the
   ## database. No key comparisons are performed. This option allows
   ## fast bulk loading when keys are already known to be in the
@@ -1775,7 +1824,7 @@ proc cursorPut*(cursor: ptr cursor; key: ptr Val; data: ptr Val; flags: cuint): 
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc cursorDel*(cursor: ptr cursor; flags: cuint): cint {.cdecl,
+proc cursorDel*(cursor: LMDBCursor; flags: cuint): cint {.cdecl,
     importc: "mdb_cursor_del", dynlib: LibName.}
   ## Delete current key/data pair
   ##
@@ -1785,7 +1834,7 @@ proc cursorDel*(cursor: ptr cursor; flags: cuint): cint {.cdecl,
   ## must be set to 0 or one of the values described here.
   ## <ul>
   ## <li>#MDB_NODUPDATA - delete all of the data items for the current key.
-  ## This flag may only be specified if the database was opened with #MDB_DUPSORT.
+  ## This flag may only be specified if the database was opened with #DUPSORT.
   ## </ul>
   ## @return A non-zero error value on failure and 0 on success. Some possible
   ## errors are:
@@ -1794,12 +1843,12 @@ proc cursorDel*(cursor: ptr cursor; flags: cuint): cint {.cdecl,
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc cursorCount*(cursor: ptr cursor; countp: ptr csize): cint {.cdecl,
+proc cursorCount*(cursor: LMDBCursor; countp: ptr csize): cint {.cdecl,
     importc: "mdb_cursor_count", dynlib: LibName.}
   ## Return count of duplicates for current key.
   ##
   ## This call is only valid on databases that support sorted duplicate
-  ## data items #MDB_DUPSORT.
+  ## data items #DUPSORT.
   ## @param[in] cursor A cursor handle returned by #mdb_cursor_open()
   ## @param[out] countp Address where the count will be stored
   ## @return A non-zero error value on failure and 0 on success. Some possible
@@ -1808,7 +1857,7 @@ proc cursorCount*(cursor: ptr cursor; countp: ptr csize): cint {.cdecl,
   ## <li>EINVAL - cursor is not initialized, or an invalid parameter was specified.
   ## </ul>
 
-proc count*(cursor: ptr cursor): int =
+proc count*(cursor: LMDBCursor): int =
   ## Return count of duplicates for current key.
   check cursorCount(cursor, addr(result))
 
@@ -1830,7 +1879,7 @@ proc dcmp*(txn: LMDBTxn; dbi: Dbi; a: ptr Val; b: ptr Val): cint {.cdecl, import
   ## Compare two data items according to a particular database.
   ##
   ## This returns a comparison as if the two items were data items of
-  ## the specified database. The database must have the #MDB_DUPSORT flag.
+  ## the specified database. The database must have the #DUPSORT flag.
   ## @param[in] txn A transaction handle returned by #mdb_txn_begin()
   ## @param[in] dbi A database handle returned by #mdb_dbi_open()
   ## @param[in] a The first item to compare
@@ -1870,11 +1919,13 @@ proc readerCheck*(env: ptr Env; dead: ptr cint): cint {.cdecl,
 type
   LMDBEnv* = ptr Env
 
-proc newLMDBEnv*(path: string): LMDBEnv =
+proc newLMDBEnv*(path: string, maxdbs=0, openflags=0): LMDBEnv =
   ## Create LMDB env. Open a database in directory `path`
   var env: ptr Env
   check envCreate(addr(env))
-  check envOpen(env, path.cstring, 0, 0o0664)
+  if maxdbs > 0:
+    env.setMaxDBs(maxdbs.Dbi)
+  check envOpen(env, path.cstring, openflags.cuint, 0o0664)
   return env
 
 proc newTxn*(env: LMDBEnv): LMDBTxn =
@@ -1883,3 +1934,10 @@ proc newTxn*(env: LMDBEnv): LMDBTxn =
   var parent_txn: LMDBTxn
   check txnBegin(env, nil, 0, addr(ptxn))
   return ptxn
+
+proc count*(txn: LMDBTxn, dbi: Dbi): int =
+  ## Count elements. Creates a temporary cursor.
+  let c = cursorOpen(txn, dbi)
+  result = c.count()
+  c.cursorClose()
+
