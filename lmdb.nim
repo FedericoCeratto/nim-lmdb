@@ -207,16 +207,8 @@ else:
   ## Library major version
 
 const
-  VERSION_MAJOR* = 0
-
-  ## Library minor version
-
-const
-  VERSION_MINOR* = 9
-
-  ## Library patch version
-
-const
+  VERSION_MAJOR* = 0 # Library minor version
+  VERSION_MINOR* = 9 # Library patch version
   VERSION_PATCH* = 21
 
 
@@ -232,9 +224,7 @@ const
 ## The release date of this library version
 
 const
-  VERSION_DATE* = "June 1, 2017"
-
-## A stringifier for the version info
+  VERSION_DATE* = "June 1, 2017" # A stringifier for the version info
 
 template verstr*(a, b, c, d: untyped): untyped =
   "LMDB "
@@ -253,7 +243,6 @@ const
   ##
   ## A DB environment supports multiple databases, all residing in the same
   ## shared-memory map.
-  ##
 
 type
   Env* = object
@@ -262,19 +251,13 @@ type
   ##
   ## All database operations require a transaction handle. Transactions may be
   ## read-only or read-write.
-  ##
 
-type
   Txn* = object
   LMDBTxn* = ptr Txn
-
   ## A handle for an individual database in the DB environment.
 
-type
   Dbi* = cuint
-
   ## Opaque structure for navigating through a database
-
 
   ## Generic structure used for passing keys and data in and out
   ## of the database.
@@ -288,15 +271,12 @@ type
   ## Other data items can in theory be from 0 to 0xffffffff bytes long.
   ##
 
-type
   Val* {.bycopy.} = object
     mvSize*: csize             ## size of the data item
     mvData*: pointer           ## address of the data item
 
-
   ## A callback function used to compare two keys in a database
 
-type
   CmpFunc* = proc (a: ptr Val; b: ptr Val): cint {.cdecl.}
 
   ## A callback function used to relocate a position-dependent data item
@@ -312,9 +292,7 @@ type
   ## @param[in] newptr The new address to relocate to.
   ## @param[in] relctx An application-provided context, set by #mdb_set_relctx().
   ## @todo This feature is currently unimplemented.
-  ##
 
-type
   RelFunc* = proc (item: ptr Val; oldptr: pointer; newptr: pointer; relctx: pointer) {.cdecl.}
 
   ## @defgroup  mdb_env  Environment Flags
@@ -323,94 +301,26 @@ type
   ## mmap at a fixed address (experimental)
 
 const
-  FIXEDMAP* = 0x00000001
-
-  ## no environment directory
-
-const
-  NOSUBDIR* = 0x00004000
-
-  ## don't fsync after commit
-
-const
-  NOSYNC* = 0x00010000
-
-  ## read only
-
-const
-  RDONLY* = 0x00020000
-
-  ## don't fsync metapage after commit
-
-const
-  NOMETASYNC* = 0x00040000
-
-  ## use writable mmap
-
-const
-  WRITEMAP* = 0x00080000
-
-  ## use asynchronous msync when #MDB_WRITEMAP is used
-
-const
-  MAPASYNC* = 0x00100000
-
-  ## tie reader locktable slots to #MDB_txn objects instead of to threads
-
-const
-  NOTLS* = 0x00200000
-
-  ## don't do any locking, caller must manage their own locks
-
-const
-  NOLOCK* = 0x00400000
-
-  ## don't do readahead (no effect on Windows)
-
-const
-  NORDAHEAD* = 0x00800000
-
-  ## don't initialize malloc'd memory before writing to datafile
-
-const
-  NOMEMINIT* = 0x01000000
-
-  ## @defgroup  mdb_dbi_open  Database Flags
+  FIXEDMAP* = 0x00000001 # no environment directory
+  NOSUBDIR* = 0x00004000 # don't fsync after commit
+  NOSYNC* = 0x00010000 # read only
+  RDONLY* = 0x00020000 # don't fsync metapage after commit
+  NOMETASYNC* = 0x00040000 # use writable mmap
+  WRITEMAP* = 0x00080000 # use asynchronous msync when #MDB_WRITEMAP is used
+  MAPASYNC* = 0x00100000 # tie reader locktable slots to #MDB_txn objects instead of to threads
+  NOTLS* = 0x00200000 # don't do any locking, caller must manage their own locks
+  NOLOCK* = 0x00400000 # don't do readahead (no effect on Windows)
+  NORDAHEAD* = 0x00800000 # don't initialize malloc'd memory before writing to datafile
+  NOMEMINIT* = 0x01000000 # @defgroup  mdb_dbi_open  Database Flags
   ##
   ## use reverse string keys
-
-const
-  REVERSEKEY* = 0x00000002
-
-  ## use sorted duplicates
-
-const
-  DUPSORT* = 0x00000004
-
-  ## numeric keys in native byte order: either unsigned int or size_t.
+  REVERSEKEY* = 0x00000002 # use sorted duplicates
+  DUPSORT* = 0x00000004 # numeric keys in native byte order: either unsigned int or size_t.
   ## The keys must all be of the same size.
-
-const
-  INTEGERKEY* = 0x00000008
-
-  ## with #DUPSORT, sorted dup items have fixed size
-
-const
-  DUPFIXED* = 0x00000010
-
-  ## with #DUPSORT, dups are #MDB_INTEGERKEY-style integers
-
-const
-  INTEGERDUP* = 0x00000020
-
-  ## with #DUPSORT, use reverse string dups
-
-const
-  REVERSEDUP* = 0x00000040
-
-  ## create DB if not already existing
-
-const
+  INTEGERKEY* = 0x00000008 # with #DUPSORT, sorted dup items have fixed size
+  DUPFIXED* = 0x00000010 # with #DUPSORT, dups are #MDB_INTEGERKEY-style integers
+  INTEGERDUP* = 0x00000020 # with #DUPSORT, use reverse string dups
+  REVERSEDUP* = 0x00000040 # create DB if not already existing
   CREATE* = 0x00040000
 
   ## @defgroup mdb_put  Write Flags
@@ -418,42 +328,29 @@ const
   ##
   ## For put: Don't write if the key already exists.
 
-const
   NOOVERWRITE* = 0x00000010
 
   ## Only for #DUPSORT<br>
   ## For put: don't write if the key and data pair already exist.<br>
   ## For mdb_cursor_del: remove all duplicate data items.
   ##
-
-const
   NODUPDATA* = 0x00000020
 
   ## For mdb_cursor_put: overwrite the current key/data pair
-
-const
   CURRENT* = 0x00000040
 
   ## For put: Just reserve space for data, don't copy it. Return a
   ## pointer to the reserved space.
   ##
-
-const
   RESERVE* = 0x00010000
 
   ## Data is being appended, don't split full pages.
-
-const
   APPEND* = 0x00020000
 
   ## Duplicate data is being appended, don't split full pages.
-
-const
   APPENDDUP* = 0x00040000
 
   ## Store multiple data items in one call. Only for #MDB_DUPFIXED.
-
-const
   MULTIPLE* = 0x00080000
 
   ## @defgroup mdb_copy  Copy Flags
@@ -461,15 +358,12 @@ const
   ## Compacting copy: Omit free space from copy, and renumber all
   ## pages sequentially.
   ##
-
-const
   CP_COMPACT* = 0x00000001
 
   ## Cursor Get operations.
   ##
   ## This is the set of all operations for retrieving data
   ## using a cursor.
-  ##
 
 type
   cursorOp* {.size: sizeof(cint).} = enum
@@ -511,121 +405,37 @@ type
   ## Successful result
 
 const
-  SUCCESS* = 0
-
-  ## key/data pair already exists
-
-const
-  KEYEXIST* = (-30799)
-
-  ## key/data pair not found (EOF)
-
-const
-  NOTFOUND* = (-30798)
-
-  ## Requested page not found - this usually indicates corruption
-
-const
-  PAGE_NOTFOUND* = (-30797)
-
-  ## Located page was wrong type
-
-const
-  CORRUPTED* = (-30796)
-
-  ## Update of meta page failed or environment had fatal error
-
-const
-  PANIC* = (-30795)
-
-  ## Environment version mismatch
-
-const
-  VERSION_MISMATCH* = (-30794)
-
-  ## File is not a valid LMDB file
-
-const
-  INVALID* = (-30793)
-
-  ## Environment mapsize reached
-
-const
-  MAP_FULL* = (-30792)
-
-  ## Environment maxdbs reached
-
-const
-  DBS_FULL* = (-30791)
-
-  ## Environment maxreaders reached
-
-const
-  READERS_FULL* = (-30790)
-
-  ## Too many TLS keys in use - Windows only
-
-const
-  TLS_FULL* = (-30789)
-
-  ## Txn has too many dirty pages
-
-const
-  TXN_FULL* = (-30788)
-
-  ## Cursor stack too deep - internal error
-
-const
-  CURSOR_FULL* = (-30787)
-
-  ## Page has not enough space - internal error
-
-const
-  PAGE_FULL* = (-30786)
-
-  ## Database contents grew beyond environment mapsize
-
-const
+  SUCCESS* = 0 # key/data pair already exists
+  KEYEXIST* = (-30799) # key/data pair not found (EOF)
+  NOTFOUND* = (-30798) # Requested page not found - this usually indicates corruption
+  PAGE_NOTFOUND* = (-30797) # Located page was wrong type
+  CORRUPTED* = (-30796) # Update of meta page failed or environment had fatal error
+  PANIC* = (-30795) # Environment version mismatch
+  VERSION_MISMATCH* = (-30794) # File is not a valid LMDB file
+  INVALID* = (-30793) # Environment mapsize reached
+  MAP_FULL* = (-30792) # Environment maxdbs reached
+  DBS_FULL* = (-30791) # Environment maxreaders reached
+  READERS_FULL* = (-30790) # Too many TLS keys in use - Windows only
+  TLS_FULL* = (-30789) # Txn has too many dirty pages
+  TXN_FULL* = (-30788) # Cursor stack too deep - internal error
+  CURSOR_FULL* = (-30787) # Page has not enough space - internal error
+  PAGE_FULL* = (-30786) # Database contents grew beyond environment mapsize
   MAP_RESIZED* = (-30785)
+  # Operation and DB incompatible, or DB type changed. This can mean:
+  # <ul>
+  # <li>The operation expects an #DUPSORT / #MDB_DUPFIXED database.
+  # <li>Opening a named DB when the unnamed DB has #DUPSORT / #MDB_INTEGERKEY.
+  # <li>Accessing a data record as a database, or vice versa.
+  # <li>The database was dropped and recreated with different flags.
+  # </ul>
+  #
 
-  ## Operation and DB incompatible, or DB type changed. This can mean:
-  ## <ul>
-  ## <li>The operation expects an #DUPSORT / #MDB_DUPFIXED database.
-  ## <li>Opening a named DB when the unnamed DB has #DUPSORT / #MDB_INTEGERKEY.
-  ## <li>Accessing a data record as a database, or vice versa.
-  ## <li>The database was dropped and recreated with different flags.
-  ## </ul>
-  ##
-
-const
-  INCOMPATIBLE* = (-30784)
-
-  ## Invalid reuse of reader locktable slot
-
-const
-  BAD_RSLOT* = (-30783)
-
-  ## Transaction must abort, has a child, or is invalid
-
-const
-  BAD_TXN* = (-30782)
-
-  ## Unsupported size of key/DB name/data, or wrong DUPFIXED size
-
-const
-  BAD_VALSIZE* = (-30781)
-
-  ## The specified DBI was changed unexpectedly
-
-const
-  BAD_DBI* = (-30780)
-
-  ## The last defined error code
-
-const
-  LAST_ERRCODE* = BAD_DBI
-
-  ## Statistics for a database in the environment
+  INCOMPATIBLE* = (-30784) # Invalid reuse of reader locktable slot
+  BAD_RSLOT* = (-30783) # Transaction must abort, has a child, or is invalid
+  BAD_TXN* = (-30782) # Unsupported size of key/DB name/data, or wrong DUPFIXED size
+  BAD_VALSIZE* = (-30781) # The specified DBI was changed unexpectedly
+  BAD_DBI* = (-30780) # The last defined error code
+  LAST_ERRCODE* = BAD_DBI # Statistics for a database in the environment
 
 type
   Stat* {.bycopy.} = object
@@ -1348,9 +1158,9 @@ proc dbiOpen*(txn: LMDBTxn; name: cstring; flags: cuint; dbi: ptr Dbi): cint {.c
   ## <li>#MDB_DBS_FULL - too many databases have been opened. See #mdb_env_set_maxdbs().
   ## </ul>
 
-proc dbiOpen*(txn: LMDBTxn; name: string; flags: cuint): Dbi =
+proc dbiOpen*(txn: LMDBTxn, name: string, flags: cuint): Dbi =
   ## Open a database in the environment.
-  if name == nil:
+  if name == "":
     check dbiOpen(txn, nil, flags, addr(result))
   else:
     check dbiOpen(txn, name.cstring, flags, addr(result))
@@ -1546,8 +1356,9 @@ proc get*(txn: LMDBTxn; dbi: Dbi; key: string): string =
   check txn.get(dbi, addr(k), addr(data))
 
   result = newStringOfCap(data.mvSize)
-  copyMem(cast[pointer](result.cstring), cast[pointer](data.mvData), data.mvSize)
   result.setLen(data.mvSize)
+  copyMem(cast[pointer](result.cstring), cast[pointer](data.mvData), data.mvSize)
+  assert result.len == data.mvSize
 
 proc put*(txn: LMDBTxn; dbi: Dbi; key: ptr Val; data: ptr Val; flags: cuint): cint {.cdecl,
     importc: "mdb_put", dynlib: LibName.}
@@ -1747,12 +1558,26 @@ proc get*(cursor: LMDBCursor, key: string, op: cursorOp = FIRST): string =
   check cursorGet(cursor, addr(k), addr(data), op)
 
   result = newStringOfCap(data.mvSize)
-  copyMem(cast[pointer](result.cstring), cast[pointer](data.mvData), data.mvSize)
   result.setLen(data.mvSize)
+  copyMem(cast[pointer](result.cstring), cast[pointer](data.mvData), data.mvSize)
+  assert result.len == data.mvSize
 
 iterator get*(cursor: LMDBCursor, key: string): string =
   ## Retrieve values for a given key using a cursor.
   ## Only for dbi opened with DUPSORT.
+  while true:
+    try:
+      yield cursor.get(key, op=NEXT)
+    except:
+      let m = getCurrentExceptionMsg()
+      if m.len > 12 and m[0..11] == "MDB_NOTFOUND":
+        break
+      else:
+        raise
+
+iterator scan_from*(cursor: LMDBCursor, key: string): string =
+  ## Retrieve values having keys greater or equal to `key`
+  yield cursor.get(key, op=SET_RANGE)
   while true:
     try:
       yield cursor.get(key, op=NEXT)

@@ -1,5 +1,6 @@
 
 import unittest, os, times, strutils
+from sequtils import toSeq
 
 import lmdb
 
@@ -8,7 +9,7 @@ template bench(cycles: int, name: string, body: untyped) =
   for cnt in 1..cycles:
     body
   let delta = epochTime() - t0
-  echo "    $# $# per second" % [$int(cycles.float / delta), name]
+  echo "         $# $# per second" % [$int(cycles.float / delta), name]
 
 proc flush_database_dir() =
   createDir "testdb"
@@ -30,16 +31,23 @@ suite "lmdb functest":
 
     #txn.renew()
 
+  #test "transaction, dbi - named":
+  #  let txn = dbenv.newTxn()
+  #  let dbi = txn.dbiOpen("foo", 0)
+
+  #  dbenv.close(dbi)
+  #  txn.abort()
+
   test "transaction, dbi":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, 0)
+    let dbi = txn.dbiOpen("", 0)
 
     dbenv.close(dbi)
     txn.abort()
 
   test "get":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, 0)
+    let dbi = txn.dbiOpen("", 0)
     expect Exception:
       let g = txn.get(dbi, "foo")
     dbenv.close(dbi)
@@ -47,7 +55,7 @@ suite "lmdb functest":
 
   test "put, get, put, get":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, 0)
+    let dbi = txn.dbiOpen("", 0)
 
     txn.put(dbi, "foo", "nyan")
     check txn.get(dbi, "foo") == "nyan"
@@ -60,7 +68,7 @@ suite "lmdb functest":
 
   test "cursor":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, 0)
+    let dbi = txn.dbiOpen("", 0)
     txn.put(dbi, "foo", "myval2")
 
     let c = txn.cursorOpen(dbi)
@@ -75,7 +83,7 @@ suite "lmdb functest":
 
   test "cursor2":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, 0)
+    let dbi = txn.dbiOpen("", 0)
     txn.put(dbi, "foo", "myval1")
 
     let c = txn.cursorOpen(dbi)
@@ -99,7 +107,7 @@ suite "lmdb functest":
   test "benchput":
     const cycles = 4
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, 0)
+    let dbi = txn.dbiOpen("", 0)
 
     block:
       bench(cycles, "put() * 4000"):
@@ -112,7 +120,7 @@ suite "lmdb functest":
   test "bench":
     const cycles = 1_000_000
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, 0)
+    let dbi = txn.dbiOpen("", 0)
 
     txn.put(dbi, "bench", "nyan")
 
@@ -137,7 +145,7 @@ suite "lmdb functest":
     const cycles = 100_000
     bench(cycles, "open + dbiOpen + commit"):
       let txn = dbenv.newTxn()
-      let dbi = txn.dbiOpen(nil, 0)
+      let dbi = txn.dbiOpen("", 0)
       dbenv.close(dbi)
       txn.commit()
 
@@ -145,34 +153,34 @@ suite "lmdb functest":
     const cycles = 100_000
     block put:
       let txn = dbenv.newTxn()
-      let dbi = txn.dbiOpen(nil, 0)
+      let dbi = txn.dbiOpen("", 0)
       txn.put(dbi, "bench", "val")
       txn.commit()
 
     bench(cycles, "open + dbiOpen + get + commit"):
       let txn = dbenv.newTxn()
-      let dbi = txn.dbiOpen(nil, 0)
+      let dbi = txn.dbiOpen("", 0)
       discard txn.get(dbi, "bench")
       dbenv.close(dbi)
       txn.commit()
 
     block del:
       let txn = dbenv.newTxn()
-      let dbi = txn.dbiOpen(nil, 0)
+      let dbi = txn.dbiOpen("", 0)
       txn.del(dbi, "bench", "val")
       txn.commit()
 
   test "put, commit, get":
     block put:
       let txn = dbenv.newTxn()
-      let dbi = txn.dbiOpen(nil, 0)
+      let dbi = txn.dbiOpen("", 0)
       txn.put(dbi, "foo", "nyan")
       dbenv.close(dbi)
       txn.commit()
 
     block get:
       let txn = dbenv.newTxn()
-      let dbi = txn.dbiOpen(nil, 0)
+      let dbi = txn.dbiOpen("", 0)
       let g = txn.get(dbi, "foo")
       check g == "nyan"
       dbenv.close(dbi)
@@ -180,14 +188,14 @@ suite "lmdb functest":
 
     block put:
       let txn = dbenv.newTxn()
-      let dbi = txn.dbiOpen(nil, 0)
+      let dbi = txn.dbiOpen("", 0)
       txn.put(dbi, "foo", "nyan2")
       dbenv.close(dbi)
       txn.commit()
 
     block get:
       let txn = dbenv.newTxn()
-      let dbi = txn.dbiOpen(nil, 0)
+      let dbi = txn.dbiOpen("", 0)
       let g = txn.get(dbi, "foo")
       check g == "nyan2"
       dbenv.close(dbi)
@@ -195,7 +203,7 @@ suite "lmdb functest":
 
   test "stat":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, 0)
+    let dbi = txn.dbiOpen("", 0)
     let stat = txn.stat(dbi)
     check stat.msEntries == 1
     dbenv.close(dbi)
@@ -203,7 +211,7 @@ suite "lmdb functest":
 
   test "invalid put":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, 0)
+    let dbi = txn.dbiOpen("", 0)
     expect Exception:
       txn.put(dbi, "", "nyan2")
     dbenv.close(dbi)
@@ -211,7 +219,7 @@ suite "lmdb functest":
 
   test "del":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, 0)
+    let dbi = txn.dbiOpen("", 0)
     txn.put(dbi, "deltest", "deleteme")
     txn.del(dbi, "deltest", "deleteme")
     expect Exception:
@@ -221,9 +229,29 @@ suite "lmdb functest":
 
   test "emptyDb deleteAndCloseDb":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, 0)
+    let dbi = txn.dbiOpen("", 0)
     txn.emptyDb(dbi)
     txn.deleteAndCloseDb(dbi)
+    dbenv.close(dbi)
+    txn.abort()
+
+  test "scan_from":
+    let txn = dbenv.newTxn()
+    let dbi = txn.dbiOpen("", 0)
+
+    txn.emptyDb(dbi)
+    txn.put(dbi, "key a1", "a1 should not appear")
+    txn.put(dbi, "key z1", "z1")
+    txn.put(dbi, "key foo2", "foo2")
+    txn.put(dbi, "key foo", "foo")
+    txn.put(dbi, "key a2", "a2 should not appear")
+    txn.put(dbi, "key z2", "z2")
+
+    let c = txn.cursorOpen(dbi)
+    let found = toSeq c.scan_from("key foo")
+    check found == @["foo", "foo2", "z1", "z2"]
+    close c
+
     dbenv.close(dbi)
     txn.abort()
 
@@ -231,7 +259,7 @@ suite "lmdb functest":
   FIXME
   test "cursor":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, 0)
+    let dbi = txn.dbiOpen("", 0)
     let cur = txn.cursorOpen(dbi)
     txn.put(dbi, "foo_c", "nyan")
     check txn.get(dbi, "foo_c") == "nyan"
@@ -243,7 +271,7 @@ suite "lmdb functest":
 
   test "DUPSORT, transaction, cursor, count":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, DUPSORT)
+    let dbi = txn.dbiOpen("", DUPSORT)
     let cur = txn.cursorOpen(dbi)
     txn.put(dbi, "foo", "nyan")
     check txn.get(dbi, "foo") == "nyan"
@@ -258,7 +286,7 @@ suite "lmdb functest":
 
   test "transaction, cursor":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, 0)
+    let dbi = txn.dbiOpen("", 0)
     #echo count()
     dbenv.close(dbi)
     txn.abort()
@@ -273,7 +301,7 @@ suite "dupsort":
 
   test "dupsort":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, CREATE or DUPSORT)
+    let dbi = txn.dbiOpen("", CREATE or DUPSORT)
     let cur = txn.cursorOpen(dbi)
     check getFlags(txn, dbi) == DUPSORT
     txn.put(dbi, "foo", "myval 1")
@@ -315,7 +343,7 @@ suite "dupsort":
 
   test "dupsort":
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, CREATE or DUPSORT)
+    let dbi = txn.dbiOpen("", CREATE or DUPSORT)
     check getFlags(txn, dbi) == DUPSORT
 
     test "iterator: nonexistent":
@@ -348,7 +376,7 @@ suite "multi":
     flush_database_dir()
     let dbenv = newLMDBEnv("./testdb", maxdbs=1)
     let txn = dbenv.newTxn()
-    let dbi = txn.dbiOpen(nil, CREATE)
+    let dbi = txn.dbiOpen("", CREATE)
     txn.abort()
     dbenv.envClose()
 
@@ -371,6 +399,5 @@ suite "multi":
     dbenv.close(dbi)
     txn.abort()
     dbenv.envClose()
-
 
 echo "done"
