@@ -4,6 +4,7 @@
 image:https://img.shields.io/badge/status-alpha-orange.svg[badge]
 image:https://img.shields.io/github/tag/FedericoCeratto/nim-lmdb.svg[tags]
 image:https://img.shields.io/badge/License-OpenLDAP-blue.svg[License]
+image:https://circleci.com/gh/FedericoCeratto/nim-lmdb.svg?style=svg["CircleCI", link="https://circleci.com/gh/FedericoCeratto/nim-lmdb"]
 
 Nim wrapper for the https://symas.com/lmdb/[Symas LMDB] library
 
