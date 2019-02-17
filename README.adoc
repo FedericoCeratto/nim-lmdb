@@ -11,7 +11,7 @@ Nim wrapper for the https://symas.com/lmdb/[Symas LMDB] library
 "...with only 32KB of object code, LMDB may seem tiny. But it’s the right 32KB."
  - from the LMDB home page.
 
-More documentation: http://www.lmdb.tech/doc/[upstream docs] https://en.wikipedia.org/wiki/Lightning_Memory-Mapped_Database[wikipedia page]
+More documentation: http://www.lmdb.tech/doc/[upstream docs] - https://en.wikipedia.org/wiki/Lightning_Memory-Mapped_Database[wikipedia page] - https://caolan.org/posts/exploring_lmdb.html[exploring LMDB]
 
 ### Features
 
