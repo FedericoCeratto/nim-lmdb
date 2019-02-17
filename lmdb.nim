@@ -224,7 +224,9 @@ const
 ## The release date of this library version
 
 const
-  VERSION_DATE* = "June 1, 2017" # A stringifier for the version info
+  VERSION_DATE* = "June 1, 2017"
+
+# A stringifier for the version info
 
 template verstr*(a, b, c, d: untyped): untyped =
   "LMDB "
@@ -295,33 +297,28 @@ type
 
   RelFunc* = proc (item: ptr Val; oldptr: pointer; newptr: pointer; relctx: pointer) {.cdecl.}
 
-  ## @defgroup  mdb_env  Environment Flags
-  ## @{
-  ##
-  ## mmap at a fixed address (experimental)
 
 const
-  FIXEDMAP* = 0x00000001 # no environment directory
-  NOSUBDIR* = 0x00004000 # don't fsync after commit
-  NOSYNC* = 0x00010000 # read only
-  RDONLY* = 0x00020000 # don't fsync metapage after commit
-  NOMETASYNC* = 0x00040000 # use writable mmap
-  WRITEMAP* = 0x00080000 # use asynchronous msync when #MDB_WRITEMAP is used
-  MAPASYNC* = 0x00100000 # tie reader locktable slots to #MDB_txn objects instead of to threads
-  NOTLS* = 0x00200000 # don't do any locking, caller must manage their own locks
-  NOLOCK* = 0x00400000 # don't do readahead (no effect on Windows)
-  NORDAHEAD* = 0x00800000 # don't initialize malloc'd memory before writing to datafile
-  NOMEMINIT* = 0x01000000 # @defgroup  mdb_dbi_open  Database Flags
-  ##
-  ## use reverse string keys
-  REVERSEKEY* = 0x00000002 # use sorted duplicates
-  DUPSORT* = 0x00000004 # numeric keys in native byte order: either unsigned int or size_t.
-  ## The keys must all be of the same size.
-  INTEGERKEY* = 0x00000008 # with #DUPSORT, sorted dup items have fixed size
-  DUPFIXED* = 0x00000010 # with #DUPSORT, dups are #MDB_INTEGERKEY-style integers
-  INTEGERDUP* = 0x00000020 # with #DUPSORT, use reverse string dups
-  REVERSEDUP* = 0x00000040 # create DB if not already existing
-  CREATE* = 0x00040000
+  FIXEDMAP* = 0x00000001   # mmap at a fixed address (experimental)
+  NOSUBDIR* = 0x00004000   # no environment directory
+  NOSYNC* = 0x00010000     # don't fsync after commit
+  RDONLY* = 0x00020000     # read only
+  NOMETASYNC* = 0x00040000 # don't fsync metapage after commit
+  WRITEMAP* = 0x00080000   # use writable mmap
+  MAPASYNC* = 0x00100000   # use asynchronous msync when #MDB_WRITEMAP is used
+  NOTLS* = 0x00200000      # tie reader locktable slots to #MDB_txn objects instead of to threads
+  NOLOCK* = 0x00400000     # don't do any locking, caller must manage their own locks
+  NORDAHEAD* = 0x00800000  # don't do readahead (no effect on Windows)
+  NOMEMINIT* = 0x01000000  # don't initialize malloc'd memory before writing to datafile
+  # @defgroup  mdb_dbi_open  Database Flags
+  REVERSEKEY* = 0x00000002 # use reverse string keys
+  DUPSORT* = 0x00000004    # use sorted duplicates
+  INTEGERKEY* = 0x00000008 # numeric keys in native byte order: either unsigned int or size_t.
+                           # The keys must all be of the same size.
+  DUPFIXED* = 0x00000010   # with #DUPSORT, sorted dup items have fixed size
+  INTEGERDUP* = 0x00000020 # with #DUPSORT, dups are #MDB_INTEGERKEY-style integers
+  REVERSEDUP* = 0x00000040 # with #DUPSORT, use reverse string dups
+  CREATE* = 0x00040000     # create DB if not already existing
 
   ## @defgroup mdb_put  Write Flags
   ## @{
@@ -486,7 +483,9 @@ template check(err: cint) =
     let s = $strerror(err)
     raise newException(Exception, s)
 
-proc envCreate*(env: ptr ptr Env): cint {.cdecl, importc: "mdb_env_create",
+type LMDBEnv* = ptr Env
+
+proc envCreate*(env: ptr LMDBEnv): cint {.cdecl, importc: "mdb_env_create",
                                     dynlib: LibName.}
   ## Create an LMDB environment handle.
   ##
@@ -500,7 +499,7 @@ proc envCreate*(env: ptr ptr Env): cint {.cdecl, importc: "mdb_env_create",
   ## @return A non-zero error value on failure and 0 on success.
   ##
 
-proc envOpen*(env: ptr Env; path: cstring; flags: cuint; mode: ModeT): cint {.cdecl,
+proc envOpen*(env: LMDBEnv; path: cstring; flags: cuint; mode: ModeT): cint {.cdecl,
     importc: "mdb_env_open", dynlib: LibName.}
   ## Open an environment handle.
   ##
@@ -624,7 +623,7 @@ proc envOpen*(env: ptr Env; path: cstring; flags: cuint; mode: ModeT): cint {.cd
   ## </ul>
   ##
 
-proc envCopy*(env: ptr Env; path: cstring): cint {.cdecl, importc: "mdb_env_copy",
+proc envCopy*(env: LMDBEnv; path: cstring): cint {.cdecl, importc: "mdb_env_copy",
     dynlib: LibName.}
   ## Copy an LMDB environment to the specified path.
   ##
@@ -641,7 +640,7 @@ proc envCopy*(env: ptr Env; path: cstring): cint {.cdecl, importc: "mdb_env_copy
   ## @return A non-zero error value on failure and 0 on success.
   ##
 
-proc envCopyfd*(env: ptr Env; fd: FilehandleT): cint {.cdecl, importc: "mdb_env_copyfd",
+proc envCopyfd*(env: LMDBEnv; fd: FilehandleT): cint {.cdecl, importc: "mdb_env_copyfd",
     dynlib: LibName.}
   ## Copy an LMDB environment to the specified file descriptor.
   ##
@@ -657,7 +656,7 @@ proc envCopyfd*(env: ptr Env; fd: FilehandleT): cint {.cdecl, importc: "mdb_env_
   ## @return A non-zero error value on failure and 0 on success.
   ##
 
-proc envCopy2*(env: ptr Env; path: cstring; flags: cuint): cint {.cdecl,
+proc envCopy2*(env: LMDBEnv; path: cstring; flags: cuint): cint {.cdecl,
     importc: "mdb_env_copy2", dynlib: LibName.}
   ## Copy an LMDB environment to the specified path, with options.
   ##
@@ -683,7 +682,7 @@ proc envCopy2*(env: ptr Env; path: cstring; flags: cuint): cint {.cdecl,
   ## @return A non-zero error value on failure and 0 on success.
   ##
 
-proc envCopyfd2*(env: ptr Env; fd: FilehandleT; flags: cuint): cint {.cdecl,
+proc envCopyfd2*(env: LMDBEnv; fd: FilehandleT; flags: cuint): cint {.cdecl,
     importc: "mdb_env_copyfd2", dynlib: LibName.}
   ## Copy an LMDB environment to the specified file descriptor,
   ## with options.
@@ -703,7 +702,7 @@ proc envCopyfd2*(env: ptr Env; fd: FilehandleT; flags: cuint): cint {.cdecl,
   ## @return A non-zero error value on failure and 0 on success.
   ##
 
-proc envStat*(env: ptr Env; stat: ptr Stat): cint {.cdecl, importc: "mdb_env_stat",
+proc envStat*(env: LMDBEnv; stat: ptr Stat): cint {.cdecl, importc: "mdb_env_stat",
     dynlib: LibName.}
   ## Return statistics about the LMDB environment.
   ##
@@ -712,7 +711,7 @@ proc envStat*(env: ptr Env; stat: ptr Stat): cint {.cdecl, importc: "mdb_env_sta
   ## where the statistics will be copied
   ##
 
-proc envInfo*(env: ptr Env; stat: ptr Envinfo): cint {.cdecl, importc: "mdb_env_info",
+proc envInfo*(env: LMDBEnv; stat: ptr Envinfo): cint {.cdecl, importc: "mdb_env_info",
     dynlib: LibName.}
   ## Return information about the LMDB environment.
   ##
@@ -721,7 +720,7 @@ proc envInfo*(env: ptr Env; stat: ptr Envinfo): cint {.cdecl, importc: "mdb_env_
   ## where the information will be copied
   ##
 
-proc envSync*(env: ptr Env; force: cint): cint {.cdecl, importc: "mdb_env_sync",
+proc envSync*(env: LMDBEnv; force: cint): cint {.cdecl, importc: "mdb_env_sync",
     dynlib: LibName.}
   ## Flush the data buffers to disk.
   ##
@@ -743,7 +742,7 @@ proc envSync*(env: ptr Env; force: cint): cint {.cdecl, importc: "mdb_env_sync",
   ## </ul>
   ##
 
-proc envClose*(env: ptr Env) {.cdecl, importc: "mdb_env_close", dynlib: LibName.}
+proc envClose*(env: LMDBEnv) {.cdecl, importc: "mdb_env_close", dynlib: LibName.}
   ## Close the environment and release the memory map.
   ##
   ## Only a single thread may call this function. All transactions, databases,
@@ -753,7 +752,7 @@ proc envClose*(env: ptr Env) {.cdecl, importc: "mdb_env_close", dynlib: LibName.
   ## @param[in] env An environment handle returned by #mdb_env_create()
   ##
 
-proc envSetFlags*(env: ptr Env; flags: cuint; onoff: cint): cint {.cdecl,
+proc envSetFlags*(env: LMDBEnv; flags: cuint; onoff: cint): cint {.cdecl,
     importc: "mdb_env_set_flags", dynlib: LibName.}
   ## Set environment flags.
   ##
@@ -770,7 +769,7 @@ proc envSetFlags*(env: ptr Env; flags: cuint; onoff: cint): cint {.cdecl,
   ## </ul>
   ##
 
-proc envGetFlags*(env: ptr Env; flags: ptr cuint): cint {.cdecl,
+proc envGetFlags*(env: LMDBEnv; flags: ptr cuint): cint {.cdecl,
     importc: "mdb_env_get_flags", dynlib: LibName.}
   ## Get environment flags.
   ##
@@ -783,7 +782,7 @@ proc envGetFlags*(env: ptr Env; flags: ptr cuint): cint {.cdecl,
   ## </ul>
   ##
 
-proc envGetPath*(env: ptr Env; path: cstringArray): cint {.cdecl,
+proc envGetPath*(env: LMDBEnv; path: cstringArray): cint {.cdecl,
     importc: "mdb_env_get_path", dynlib: LibName.}
   ## Return the path that was used in #mdb_env_open().
   ##
@@ -798,7 +797,7 @@ proc envGetPath*(env: ptr Env; path: cstringArray): cint {.cdecl,
   ## </ul>
   ##
 
-proc envGetFd*(env: ptr Env; fd: ptr FilehandleT): cint {.cdecl,
+proc envGetFd*(env: LMDBEnv; fd: ptr FilehandleT): cint {.cdecl,
     importc: "mdb_env_get_fd", dynlib: LibName.}
   ## Return the filedescriptor for the given environment.
   ##
@@ -815,7 +814,7 @@ proc envGetFd*(env: ptr Env; fd: ptr FilehandleT): cint {.cdecl,
   ## </ul>
   ##
 
-proc envSetMapsize*(env: ptr Env; size: csize): cint {.cdecl,
+proc envSetMapsize*(env: LMDBEnv; size: csize): cint {.cdecl,
     importc: "mdb_env_set_mapsize", dynlib: LibName.}
   ## Set the size of the memory map to use for this environment.
   ##
@@ -850,7 +849,7 @@ proc envSetMapsize*(env: ptr Env; size: csize): cint {.cdecl,
   ## </ul>
   ##
 
-proc envSetMaxreaders*(env: ptr Env; readers: cuint): cint {.cdecl,
+proc envSetMaxreaders*(env: LMDBEnv; readers: cuint): cint {.cdecl,
     importc: "mdb_env_set_maxreaders", dynlib: LibName.}
   ## Set the maximum number of threads/reader slots for the environment.
   ##
@@ -870,7 +869,7 @@ proc envSetMaxreaders*(env: ptr Env; readers: cuint): cint {.cdecl,
   ## </ul>
   ##
 
-proc envGetMaxreaders*(env: ptr Env; readers: ptr cuint): cint {.cdecl,
+proc envGetMaxreaders*(env: LMDBEnv; readers: ptr cuint): cint {.cdecl,
     importc: "mdb_env_get_maxreaders", dynlib: LibName.}
   ## Get the maximum number of threads/reader slots for the environment.
   ##
@@ -881,9 +880,14 @@ proc envGetMaxreaders*(env: ptr Env; readers: ptr cuint): cint {.cdecl,
   ## <ul>
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
-  ##
 
-proc envSetMaxdbs*(env: ptr Env; dbs: Dbi): cint {.cdecl, importc: "mdb_env_set_maxdbs",
+proc envGetMaxreaders*(env: LMDBEnv): int =
+  ## Get the maximum number of threads/reader slots for the environment.
+  var r: cuint
+  check envGetMaxreaders(env, addr r)
+  r.int
+
+proc envSetMaxdbs*(env: LMDBEnv; dbs: Dbi): cint {.cdecl, importc: "mdb_env_set_maxdbs",
     dynlib: LibName.}
   ## Set the maximum number of named databases for the environment.
   ##
@@ -904,7 +908,7 @@ proc envSetMaxdbs*(env: ptr Env; dbs: Dbi): cint {.cdecl, importc: "mdb_env_set_
   ## </ul>
   ##
 
-proc setMaxDBs*(env: ptr Env, dbs: Dbi) =
+proc setMaxDBs*(env: LMDBEnv, dbs: Dbi) =
   ## Set the maximum number of named databases for the environment.
   ##
   ## This function is only needed if multiple databases will be used in the
@@ -912,7 +916,7 @@ proc setMaxDBs*(env: ptr Env, dbs: Dbi) =
   ## unnamed database can ignore this option.
   check envSetMaxdbs(env, dbs)
 
-proc envGetMaxkeysize*(env: ptr Env): cint {.cdecl, importc: "mdb_env_get_maxkeysize",
+proc envGetMaxkeysize*(env: LMDBEnv): cint {.cdecl, importc: "mdb_env_get_maxkeysize",
                                         dynlib: LibName.}
   ## Get the maximum size of keys and #DUPSORT data we can write.
   ##
@@ -922,7 +926,7 @@ proc envGetMaxkeysize*(env: ptr Env): cint {.cdecl, importc: "mdb_env_get_maxkey
   ## @return The maximum size of a key we can write
   ##
 
-proc envSetUserctx*(env: ptr Env; ctx: pointer): cint {.cdecl,
+proc envSetUserctx*(env: LMDBEnv; ctx: pointer): cint {.cdecl,
     importc: "mdb_env_set_userctx", dynlib: LibName.}
   ## Set application information associated with the #MDB_env.
   ##
@@ -931,7 +935,7 @@ proc envSetUserctx*(env: ptr Env; ctx: pointer): cint {.cdecl,
   ## @return A non-zero error value on failure and 0 on success.
   ##
 
-proc envGetUserctx*(env: ptr Env): pointer {.cdecl, importc: "mdb_env_get_userctx",
+proc envGetUserctx*(env: LMDBEnv): pointer {.cdecl, importc: "mdb_env_get_userctx",
                                         dynlib: LibName.}
   ## Get the application information associated with the #MDB_env.
   ##
@@ -947,7 +951,7 @@ proc envGetUserctx*(env: ptr Env): pointer {.cdecl, importc: "mdb_env_get_userct
 ##
 
 type
-  AssertFunc* = proc (env: ptr Env; msg: cstring) {.cdecl.}
+  AssertFunc* = proc (env: LMDBEnv; msg: cstring) {.cdecl.}
 
   ## Set or reset the assert() callback of the environment.
   ## Disabled if liblmdb is buillt with NDEBUG.
@@ -957,10 +961,10 @@ type
   ## @return A non-zero error value on failure and 0 on success.
   ##
 
-proc envSetAssert*(env: ptr Env; `func`: ptr AssertFunc): cint {.cdecl,
+proc envSetAssert*(env: LMDBEnv; `func`: ptr AssertFunc): cint {.cdecl,
     importc: "mdb_env_set_assert", dynlib: LibName.}
 
-proc txnBegin*(env: ptr Env; parent: LMDBTxn; flags: cuint; txn: ptr LMDBTxn): cint {.cdecl,
+proc txnBegin*(env: LMDBEnv; parent: LMDBTxn; flags: cuint; txn: ptr LMDBTxn): cint {.cdecl,
     importc: "mdb_txn_begin", dynlib: LibName.}
   ## Create a transaction for use with the environment.
   ##
@@ -997,7 +1001,7 @@ proc txnBegin*(env: ptr Env; parent: LMDBTxn; flags: cuint; txn: ptr LMDBTxn): c
   ## </ul>
   ##
 
-proc txnEnv*(txn: LMDBTxn): ptr Env {.cdecl, importc: "mdb_txn_env", dynlib: LibName.}
+proc txnEnv*(txn: LMDBTxn): LMDBEnv {.cdecl, importc: "mdb_txn_env", dynlib: LibName.}
   ## Returns the transaction's #MDB_env
   ##
   ## @param[in] txn A transaction handle returned by #mdb_txn_begin()
@@ -1199,7 +1203,7 @@ proc getFlags*(txn: LMDBTxn, dbi: Dbi): int =
   check dbiFlags(txn, dbi, addr r)
   int(r)
 
-proc dbiClose*(env: ptr Env; dbi: Dbi) {.cdecl, importc: "mdb_dbi_close", dynlib: LibName.}
+proc dbiClose*(env: LMDBEnv; dbi: Dbi) {.cdecl, importc: "mdb_dbi_close", dynlib: LibName.}
   ## Close a database handle. Normally unnecessary. Use with care:
   ##
   ## This call is not mutex protected. Handles should only be closed by
@@ -1722,7 +1726,7 @@ proc dcmp*(txn: LMDBTxn; dbi: Dbi; a: ptr Val; b: ptr Val): cint {.cdecl, import
 type
   MsgFunc* = proc (msg: cstring; ctx: pointer): cint {.cdecl.}
 
-proc readerList*(env: ptr Env; `func`: ptr MsgFunc; ctx: pointer): cint {.cdecl,
+proc readerList*(env: LMDBEnv; `func`: ptr MsgFunc; ctx: pointer): cint {.cdecl,
     importc: "mdb_reader_list", dynlib: LibName.}
   ## Dump the entries in the reader lock table.
   ##
@@ -1732,7 +1736,7 @@ proc readerList*(env: ptr Env; `func`: ptr MsgFunc; ctx: pointer): cint {.cdecl,
   ## @return < 0 on failure, >= 0 on success.
   ##
 
-proc readerCheck*(env: ptr Env; dead: ptr cint): cint {.cdecl,
+proc readerCheck*(env: LMDBEnv; dead: ptr cint): cint {.cdecl,
     importc: "mdb_reader_check", dynlib: LibName.}
   ## Check for stale entries in the reader lock table.
   ##
@@ -1741,12 +1745,9 @@ proc readerCheck*(env: ptr Env; dead: ptr cint): cint {.cdecl,
   ## @return 0 on success, non-zero on failure.
 
 
-type
-  LMDBEnv* = ptr Env
-
 proc newLMDBEnv*(path: string, maxdbs=0, openflags=0): LMDBEnv =
   ## Create LMDB env. Open a database in directory `path`
-  var env: ptr Env
+  var env: LMDBEnv
   check envCreate(addr(env))
   if maxdbs > 0:
     env.setMaxDBs(maxdbs.Dbi)
