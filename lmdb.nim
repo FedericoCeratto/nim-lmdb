@@ -274,7 +274,7 @@ type
   ##
 
   Val* {.bycopy.} = object
-    mvSize*: csize             ## size of the data item
+    mvSize*: uint              ## size of the data item
     mvData*: pointer           ## address of the data item
 
   ## A callback function used to compare two keys in a database
@@ -439,10 +439,10 @@ type
     msPsize*: cuint            ## Size of a database page.
                   ## This is currently the same for all databases.
     msDepth*: cuint            ## Depth (height) of the B-tree
-    msBranchPages*: csize      ## Number of internal (non-leaf) pages
-    msLeafPages*: csize        ## Number of leaf pages
-    msOverflowPages*: csize    ## Number of overflow pages
-    msEntries*: csize          ## Number of data items
+    msBranchPages*: uint       ## Number of internal (non-leaf) pages
+    msLeafPages*: uint         ## Number of leaf pages
+    msOverflowPages*: uint     ## Number of overflow pages
+    msEntries*: uint           ## Number of data items
 
 
   ## Information about the environment
@@ -450,9 +450,9 @@ type
 type
   Envinfo* {.bycopy.} = object
     meMapaddr*: pointer        ## Address of map, if fixed
-    meMapsize*: csize          ## Size of the data memory map
-    meLastPgno*: csize         ## ID of the last used page
-    meLastTxnid*: csize        ## ID of the last committed transaction
+    meMapsize*: uint           ## Size of the data memory map
+    meLastPgno*: uint          ## ID of the last used page
+    meLastTxnid*: uint         ## ID of the last committed transaction
     meMaxreaders*: cuint       ## max reader slots in the environment
     meNumreaders*: cuint       ## max reader slots used in the environment
 
@@ -814,7 +814,7 @@ proc envGetFd*(env: LMDBEnv; fd: ptr FilehandleT): cint {.cdecl,
   ## </ul>
   ##
 
-proc envSetMapsize*(env: LMDBEnv; size: csize): cint {.cdecl,
+proc envSetMapsize*(env: LMDBEnv; size: uint): cint {.cdecl,
     importc: "mdb_env_set_mapsize", dynlib: LibName.}
   ## Set the size of the memory map to use for this environment.
   ##
@@ -1007,7 +1007,7 @@ proc txnEnv*(txn: LMDBTxn): LMDBEnv {.cdecl, importc: "mdb_txn_env", dynlib: Lib
   ## @param[in] txn A transaction handle returned by #mdb_txn_begin()
   ##
 
-proc txnId*(txn: LMDBTxn): csize {.cdecl, importc: "mdb_txn_id", dynlib: LibName.}
+proc txnId*(txn: LMDBTxn): uint {.cdecl, importc: "mdb_txn_id", dynlib: LibName.}
   ## Return the transaction's ID.
   ##
   ## This returns the identifier associated with this transaction. For a
@@ -1354,7 +1354,7 @@ proc get*(txn: LMDBTxn; dbi: Dbi; key: ptr Val; data: ptr Val): cint {.cdecl,
 proc get*(txn: LMDBTxn; dbi: Dbi; key: string): string =
   ## Get items from a database.
   var key = key
-  var k = Val(mvSize: key.len, mvData: key.cstring)
+  var k = Val(mvSize: key.len.uint, mvData: key.cstring)
   var data: Val
 
   check txn.get(dbi, addr(k), addr(data))
@@ -1362,7 +1362,7 @@ proc get*(txn: LMDBTxn; dbi: Dbi; key: string): string =
   result = newStringOfCap(data.mvSize)
   result.setLen(data.mvSize)
   copyMem(cast[pointer](result.cstring), cast[pointer](data.mvData), data.mvSize)
-  assert result.len == data.mvSize
+  assert result.len == data.mvSize.int
 
 proc put*(txn: LMDBTxn; dbi: Dbi; key: ptr Val; data: ptr Val; flags: cuint): cint {.cdecl,
     importc: "mdb_put", dynlib: LibName.}
@@ -1417,8 +1417,8 @@ proc put*(txn: LMDBTxn; dbi: Dbi; key, data: string, flags=0) =
   ## Store item into a database.
   var key = key
   var data = data
-  var k = Val(mvSize: key.len, mvData: key.cstring)
-  var d = Val(mvSize: data.len, mvData: data.cstring)
+  var k = Val(mvSize: key.len.uint, mvData: key.cstring)
+  var d = Val(mvSize: data.len.uint, mvData: data.cstring)
 
   check txn.put(dbi, addr(k), addr(d), flags.cuint)
 
@@ -1450,8 +1450,8 @@ proc del*(txn: LMDBTxn; dbi: Dbi; key, data: string, flags=0) =
   ## Delete an item from a database.
   var key = key
   var data = data
-  var k = Val(mvSize: key.len, mvData: key.cstring)
-  var d = Val(mvSize: data.len, mvData: data.cstring)
+  var k = Val(mvSize: key.len.uint, mvData: key.cstring)
+  var d = Val(mvSize: data.len.uint, mvData: data.cstring)
 
   check txn.del(dbi, addr(k), addr(d))
 
@@ -1556,7 +1556,7 @@ proc cursorGet*(cursor: LMDBCursor; key: ptr Val; data: ptr Val; op: cursorOp): 
 proc get*(cursor: LMDBCursor, key: string, op: cursorOp = FIRST): string =
   ## Retrieve key/data pairs from the database using a cursor.
   var key = key
-  var k = Val(mvSize: key.len, mvData: key.cstring)
+  var k = Val(mvSize: key.len.uint, mvData: key.cstring)
   var data: Val
 
   check cursorGet(cursor, addr(k), addr(data), op)
@@ -1564,7 +1564,7 @@ proc get*(cursor: LMDBCursor, key: string, op: cursorOp = FIRST): string =
   result = newStringOfCap(data.mvSize)
   result.setLen(data.mvSize)
   copyMem(cast[pointer](result.cstring), cast[pointer](data.mvData), data.mvSize)
-  assert result.len == data.mvSize
+  assert result.len.uint == data.mvSize
 
 iterator get*(cursor: LMDBCursor, key: string): string =
   ## Retrieve values for a given key using a cursor.
@@ -1672,7 +1672,7 @@ proc cursorDel*(cursor: LMDBCursor; flags: cuint): cint {.cdecl,
   ## <li>EINVAL - an invalid parameter was specified.
   ## </ul>
 
-proc cursorCount*(cursor: LMDBCursor; countp: ptr csize): cint {.cdecl,
+proc cursorCount*(cursor: LMDBCursor; countp: ptr uint): cint {.cdecl,
     importc: "mdb_cursor_count", dynlib: LibName.}
   ## Return count of duplicates for current key.
   ##
@@ -1688,7 +1688,9 @@ proc cursorCount*(cursor: LMDBCursor; countp: ptr csize): cint {.cdecl,
 
 proc count*(cursor: LMDBCursor): int =
   ## Return count of duplicates for current key.
-  check cursorCount(cursor, addr(result))
+  var r = 0.uint
+  check cursorCount(cursor, addr(r))
+  r.int
 
 proc cmp*(txn: LMDBTxn; dbi: Dbi; a: ptr Val; b: ptr Val): cint {.cdecl, importc: "mdb_cmp",
     dynlib: LibName.}
