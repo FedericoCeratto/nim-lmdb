@@ -38,7 +38,7 @@ import lmdb
 # create dbenv, transaction and a dbi
 let dbenv = newLMDBEnv("./testdb")
 let txn = dbenv.newTxn()
-let dbi = txn.dbiOpen(nil, 0)
+let dbi = txn.dbiOpen("", 0)
 
 txn.put(dbi, "foo", "value")
 let g = txn.get(dbi, "foo")
